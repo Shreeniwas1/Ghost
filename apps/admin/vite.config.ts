@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 
-import { emberAssetsPlugin } from './vite-ember-assets';
+import { builtAdminPlugin } from './vite-built-admin';
 import { embedRendererPlugin } from './vite-embed-renderer';
 import { ghostBackendProxyPlugin } from './vite-backend-proxy';
 import { sharedDefine, sharedResolve } from './vite.shared';
@@ -65,7 +65,7 @@ export default defineConfig(({ command }) => ({
   plugins: [
     tailwindcss() as PluginOption,
     react(),
-    emberAssetsPlugin(),
+    builtAdminPlugin(),
     embedRendererPlugin(),
     ghostBackendProxyPlugin(),
     // Sentry's plugin goes after all others

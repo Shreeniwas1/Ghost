@@ -166,8 +166,6 @@ reviews:
       enabled: true
     stylelint:
       enabled: true
-    emberTemplateLint:
-      enabled: true
     actionlint:
       enabled: true
     zizmor:

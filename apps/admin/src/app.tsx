@@ -3,16 +3,7 @@ import { Outlet } from '@tryghost/admin-x-framework';
 import { useBrowseSettings } from '@tryghost/admin-x-framework/api/settings';
 import { useCurrentUser } from '@tryghost/admin-x-framework/api/current-user';
 import { UnauthorizedError } from '@tryghost/admin-x-framework/errors';
-import { EmberProvider, EmberFallback, EmberRoot } from './ember-bridge';
 import { AdminLayout } from './layout/admin-layout';
-import { useSyncEmberFullScreen } from './layout/sidebar-visibility';
-import { useSyncEmberRoutePattern } from './routes';
-import {
-  useEmberAuthSync,
-  useEmberDataSync,
-  useEmberListReturnSync,
-  useEmberNotificationsHost,
-} from './ember-bridge';
 import {
   AdminAlerts,
   createAlertsStore,
@@ -26,7 +17,7 @@ import { useGlobalShortcuts } from './global-shortcuts/global-shortcuts';
 import { useAccentColorProperties } from './hooks/use-accent-color-properties';
 import { useDocumentTitle } from './hooks/use-document-title';
 import { usePrivateSiteLogin } from './hooks/use-private-site-login';
-import { SignedOutApp, useAuthNotice, useAuthScreensOwner } from './auth/api';
+import { SignedOutApp, useAuthNotice } from './auth/api';
 import { useSentry } from './sentry';
 import { BootError, BootLoader } from './boot-states';
 
@@ -36,7 +27,6 @@ function App() {
   // reports it pending meanwhile, which would unmount the signed-out screens.
   const isSignedOut = !currentUser && errorUpdatedAt > 0;
   const bootError = !currentUser && error && !(error instanceof UnauthorizedError) ? error : null;
-  const authScreensOwner = useAuthScreensOwner();
   const [alerts] = useState(createAlertsStore);
   useSentry();
   // Warm the settings cache at boot (as the removed AppProvider did): screens
@@ -46,12 +36,6 @@ function App() {
   useAccentColorProperties();
   useDocumentTitle();
   usePrivateSiteLogin();
-  useEmberAuthSync();
-  useEmberDataSync();
-  useEmberListReturnSync();
-  useSyncEmberFullScreen();
-  useSyncEmberRoutePattern();
-  useEmberNotificationsHost(alerts);
   useServerNotifications(alerts);
   useUpgradeStatusAlerts(alerts);
   useAuthNotice(Boolean(currentUser));
@@ -59,37 +43,22 @@ function App() {
   useGlobalShortcuts(Boolean(currentUser));
 
   return (
-    <EmberProvider>
+    <>
       <AdminAlerts store={alerts} />
       {currentUser ? (
         <AdminLayout>
           <Outlet />
-          <EmberRoot />
           <DocsBotWidgetHost />
           <ClientExtensionScript />
         </AdminLayout>
       ) : bootError ? (
-        <>
-          <BootError error={bootError} />
-          <EmberRoot />
-        </>
-      ) : isSignedOut && authScreensOwner === 'react' ? (
-        <>
-          <SignedOutApp />
-          <EmberRoot />
-        </>
-      ) : isSignedOut && authScreensOwner === 'ember' ? (
-        <>
-          <EmberFallback />
-          <EmberRoot />
-        </>
+        <BootError error={bootError} />
+      ) : isSignedOut ? (
+        <SignedOutApp />
       ) : (
-        <>
-          <BootLoader />
-          <EmberRoot />
-        </>
+        <BootLoader />
       )}
-    </EmberProvider>
+    </>
   );
 }
 

@@ -164,27 +164,7 @@
     // leave the 0.1 line.
     'path-to-regexp',
   ],
-  ignorePaths: [
-    'test',
-    // Freeze the Ember admin app wholesale. `apps/ember-admin` is being replaced by
-    // the React apps in `apps/*`, and its dependency tree is a frozen-as-a-unit
-    // Ember/broccoli stack we deliberately do not upgrade (see
-    // docs/ember-dependency-burden.md). Ignoring the whole directory drops
-    // admin's declared deps from extraction entirely: no update PRs, and they
-    // stop cluttering the Dependency Dashboard's Detected / Abandoned /
-    // Deprecated sections. Because Renovate manages deps per-manifest, anything
-    // admin SHARES with `ghost/core` or `apps/*` is still managed via those
-    // manifests — so in effect only admin-exclusive deps are omitted. This
-    // subsumes the old koenig-editor ignore and the per-package "Disable ember
-    // updates" / "disable css" rules (removed from packageRules below).
-    //
-    // Security note: GitHub Dependabot alerts for admin deps still fire (they
-    // are independent of Renovate) — we lose only Renovate's auto-fix PR. Given
-    // the app is slated for removal, remediate any rare real incident with a
-    // `pnpm overrides` pin. Today's admin-exclusive advisories are all
-    // build-time or verified-not-shipped (see docs/ember-dependency-burden.md).
-    'apps/ember-admin/**',
-  ],
+  ignorePaths: ['test'],
   packageRules: [
     // Auto-generate a changeset when an npm/package.json update (or a pnpm
     // catalog bump — the npm manager handles both) touches a publishable

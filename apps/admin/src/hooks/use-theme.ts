@@ -1,9 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  applyEmberAdminThemePreference,
-  isEmberThemeManaged,
-  preloadEmberAdminThemeStylesheet,
-} from '@/ember-bridge';
 import { useEditUserPreferences, useUserPreferences } from '@/hooks/user-preferences';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -36,15 +31,6 @@ function applyThemeClass(resolvedTheme: ResolvedThemeMode) {
       themeSwitchingFrame = undefined;
     });
   });
-}
-
-// Applying the DOM theme is only a fallback for running without EmberBridge.
-// React still tracks system preference changes so resolvedTheme stays current
-// for consumers even when Ember owns the DOM — see isEmberThemeManaged.
-function applyAdminTheme(mode: ThemeMode, resolvedTheme: ResolvedThemeMode) {
-  if (!applyEmberAdminThemePreference(mode)) {
-    applyThemeClass(resolvedTheme);
-  }
 }
 
 // App code must consume this via ThemeProvider/useThemeContext (src/providers):
@@ -89,9 +75,6 @@ export function useTheme() {
   }, []);
 
   useEffect(() => {
-    if (isEmberThemeManaged()) {
-      return;
-    }
     applyThemeClass(resolvedTheme);
   }, [resolvedTheme]);
 
@@ -118,15 +101,11 @@ export function useTheme() {
 
       try {
         const nextResolvedTheme = mode === 'system' ? systemTheme : mode;
-        await preloadEmberAdminThemeStylesheet().catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error('[Theme] Failed to preload admin theme stylesheet:', error);
-        });
-        applyAdminTheme(mode, nextResolvedTheme);
+        applyThemeClass(nextResolvedTheme);
         await editPreferences({ nightShift: mode });
       } catch (error) {
         setPendingTheme(null);
-        applyAdminTheme(theme, resolvedTheme);
+        applyThemeClass(resolvedTheme);
         // eslint-disable-next-line no-console
         console.error('[Theme] Failed to update appearance preference:', error);
       } finally {

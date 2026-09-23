@@ -5,19 +5,14 @@ import { browseConfigWithDunning, dunningWindow } from '@test-utils/fixtures/dun
 import { DunningBanner } from './dunning-banner';
 import { DunningOverlay } from './dunning-overlay';
 
-const {
-  mockUseBrowseConfig,
-  mockUseSubscriptionStatus,
-  mockUseCurrentUser,
-  mockUseBrowseUsers,
-  mockUseLocation,
-} = vi.hoisted(() => ({
-  mockUseBrowseConfig: vi.fn(),
-  mockUseSubscriptionStatus: vi.fn(),
-  mockUseCurrentUser: vi.fn(),
-  mockUseBrowseUsers: vi.fn(),
-  mockUseLocation: vi.fn(),
-}));
+const { mockUseBrowseConfig, mockUseCurrentUser, mockUseBrowseUsers, mockUseLocation } = vi.hoisted(
+  () => ({
+    mockUseBrowseConfig: vi.fn(),
+    mockUseCurrentUser: vi.fn(),
+    mockUseBrowseUsers: vi.fn(),
+    mockUseLocation: vi.fn(),
+  }),
+);
 
 vi.mock('@tryghost/admin-x-framework', () => ({
   useLocation: mockUseLocation,
@@ -41,10 +36,6 @@ vi.mock('@tryghost/admin-x-framework/api/users', async () => {
   return { ...actual, useBrowseUsers: mockUseBrowseUsers };
 });
 
-vi.mock('@/ember-bridge', () => ({
-  useSubscriptionStatus: mockUseSubscriptionStatus,
-}));
-
 const NOW = new Date('2026-09-10T12:00:00Z');
 
 const ownerUser = {
@@ -64,7 +55,6 @@ describe('dunning UI', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(NOW);
     window.sessionStorage.clear();
-    mockUseSubscriptionStatus.mockReturnValue(null);
     mockUseLocation.mockReturnValue({ pathname: '/analytics' });
     mockUseCurrentUser.mockReturnValue({ data: ownerUser });
     mockUseBrowseUsers.mockReturnValue({ data: { users: [ownerUser, editorUser] } });

@@ -4,17 +4,12 @@ import { DAY_MS, browseConfigWithDunning, dunningWindow } from '@test-utils/fixt
 
 import { dismissLock, markPayNowReturnRoute, useDunningState } from './use-dunning-state';
 
-const { mockUseBrowseConfig, mockUseSubscriptionStatus } = vi.hoisted(() => ({
+const { mockUseBrowseConfig } = vi.hoisted(() => ({
   mockUseBrowseConfig: vi.fn(),
-  mockUseSubscriptionStatus: vi.fn(),
 }));
 
 vi.mock('@tryghost/admin-x-framework/api/config', () => ({
   useBrowseConfig: mockUseBrowseConfig,
-}));
-
-vi.mock('@/ember-bridge', () => ({
-  useSubscriptionStatus: mockUseSubscriptionStatus,
 }));
 
 const NOW = new Date('2026-09-10T12:00:00Z');
@@ -24,7 +19,6 @@ describe('useDunningState', () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     window.sessionStorage.clear();
-    mockUseSubscriptionStatus.mockReturnValue(null);
     mockUseBrowseConfig.mockReturnValue(browseConfigWithDunning(dunningWindow(2)));
   });
 
@@ -119,29 +113,12 @@ describe('useDunningState', () => {
     expect(result.current).toMatchObject({ phase: 'locked', daysLeft: 0 });
   });
 
-  test('clears when the billing app reports an active subscription', () => {
-    mockUseSubscriptionStatus.mockReturnValue({ subscription: { status: 'active' } });
-
-    const { result } = renderHook(() => useDunningState());
-
-    expect(result.current).toBeNull();
-  });
-
-  test('does not clear for a subscription that is still past_due', () => {
-    mockUseSubscriptionStatus.mockReturnValue({ subscription: { status: 'past_due' } });
-
-    const { result } = renderHook(() => useDunningState());
-
-    expect(result.current).not.toBeNull();
-  });
-
   test.each([-60, 60])(
     'clears the settled failure with the client clock skewed by %i days',
     (skewDays) => {
       const dunning = dunningWindow(8, { now: NOW.getTime() });
       vi.setSystemTime(new Date(NOW.getTime() + skewDays * DAY_MS));
       mockUseBrowseConfig.mockReturnValue(browseConfigWithDunning(dunning));
-      mockUseSubscriptionStatus.mockReturnValue({ subscription: { status: 'past_due' } });
       // Written by the Ember billing service on the post-payment return.
       window.sessionStorage.setItem('ghost-dunning-payment-settled-for', dunning.paymentFailedAt);
 

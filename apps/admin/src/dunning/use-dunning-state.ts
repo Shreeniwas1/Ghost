@@ -6,7 +6,6 @@ import {
   parseDunningConfig,
 } from '@tryghost/admin-x-framework/api/dunning';
 import { useFeatureFlag } from '@tryghost/admin-x-framework/hooks';
-import { useSubscriptionStatus } from '@/ember-bridge';
 import { readSharedNow, retainMinuteTicker, subscribeSharedNow } from './minute-ticker';
 
 export type DunningPhase = 'warning' | 'locked';
@@ -132,11 +131,9 @@ function readPaymentSettledFor(): string | null {
  * Payment-failure (dunning) state for the site's hosting subscription, derived
  * from host-provided config (`hostSettings.billing.dunning`).
  *
- * Returns `null` when there is nothing to show: no dunning block, a malformed
- * one (the /config/ response isn't runtime-validated, so guard against a
- * misconfigured host config), or a live subscription that has become active
- * (the billing app reports payment over the Ember bridge before the server
- * config catches up).
+ * Returns `null` when there is nothing to show: no dunning block, or a
+ * malformed one (the /config/ response isn't runtime-validated, so guard
+ * against a misconfigured host config).
  *
  * The phase is computed client-side from the position within the
  * paymentFailedAt -> suspendsAt window so no config rewrite is needed for the
@@ -144,7 +141,6 @@ function readPaymentSettledFor(): string | null {
  */
 export function useDunningState(): DunningState | null {
   const { data: config } = useBrowseConfig();
-  const subscriptionStatus = useSubscriptionStatus();
   // Labs-gated while in development: hosts can ship and test the config
   // pipeline without end users seeing any dunning UI.
   const dunningWarningsEnabled = useFeatureFlag('dunningWarnings');
@@ -175,12 +171,6 @@ export function useDunningState(): DunningState | null {
     return null;
   }
   const { paymentFailedAt, suspendsAt } = dunning;
-
-  // The billing app reported a live, active subscription: payment went
-  // through, only the restart-scoped config is stale.
-  if (subscriptionStatus?.subscription?.status === 'active') {
-    return null;
-  }
 
   // Only suppress the failure that was settled this session. Comparing its
   // server-provided identity avoids relying on the browser clock and lets a

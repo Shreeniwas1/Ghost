@@ -1,5 +1,4 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { page } from 'vitest/browser';
 import {
   currentRoute,
   fakeAdminEndpoint,
@@ -7,7 +6,6 @@ import {
   plainText,
   renderAdminApp,
   signedOut,
-  siteResponse,
 } from '@test-utils/acceptance';
 import { authScreen } from './auth.screen';
 import { reloadAdmin } from './reload';
@@ -19,54 +17,27 @@ const SIGNIN_REDIRECT_KEY = 'ghost-signin-redirect';
 const ghostError = (status: number, error: Record<string, unknown>) =>
   [{ errors: [error] }, { status }] as const;
 
-const emberFrameHidden = () => document.getElementById('ember-app')?.parentElement?.hidden;
-
 beforeEach(() => {
   vi.mocked(reloadAdmin).mockClear();
   window.sessionStorage.clear();
 });
 
-it('serves sign in from React when the site hands the auth screens over', async () => {
+it('serves sign in from React', async () => {
   fakeSetupStatus();
   await renderAdminApp('/signin', signedOut({ authReact: true }));
 
   await expect.element(authScreen.emailInput()).toBeVisible();
   await expect.element(authScreen.signInButton()).toBeVisible();
-  expect(emberFrameHidden()).toBe(true);
 });
 
 it.each([
   ['a server that predates the flag', undefined],
   ['the flag off', false],
-])('leaves sign in to Ember on %s', async (_case, authReact) => {
+])('serves sign in from React on %s', async (_case, authReact) => {
+  fakeSetupStatus();
   await renderAdminApp('/signin', signedOut({ authReact }));
 
-  await expect.poll(emberFrameHidden).toBe(false);
-  await expect(authScreen.signInButton()).toHaveCount(0);
-});
-
-it('shows the boot loader until it knows who serves sign in', async () => {
-  let releaseSite = () => {};
-  const siteReleased = new Promise<void>((resolve) => {
-    releaseSite = resolve;
-  });
-  const { boot } = signedOut();
-  const browseSite = {
-    response: async () => {
-      await siteReleased;
-      return siteResponse();
-    },
-  };
-  await renderAdminApp('/signin', { boot: { ...boot, browseSite } });
-
-  const bootLoader = page.getByRole('status', { name: 'Loading Ghost Admin' });
-  await expect.element(bootLoader).toBeVisible();
-  expect(emberFrameHidden()).toBe(true);
-
-  releaseSite();
-
-  await expect.poll(emberFrameHidden).toBe(false);
-  await expect(bootLoader).toHaveCount(0);
+  await expect.element(authScreen.signInButton()).toBeVisible();
 });
 
 it('serves sign in from React with the Labs URL override', async () => {

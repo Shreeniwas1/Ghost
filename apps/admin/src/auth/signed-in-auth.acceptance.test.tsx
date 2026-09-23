@@ -21,8 +21,6 @@ const withAuthReact = (authReact: boolean): RenderAdminAppOptions => {
   return { boot: { browseSite: { response: { site: { ...site.site, authReact } } } } };
 };
 
-const emberFrameHidden = () => document.getElementById('ember-app')?.parentElement?.hidden;
-
 beforeEach(() => {
   vi.mocked(reloadAdmin).mockClear();
   window.sessionStorage.clear();
@@ -64,11 +62,12 @@ it('signs out and reloads onto sign in', async () => {
   expect(sessionApi.requests).toHaveLength(1);
 });
 
-it('leaves signed-in auth routes to Ember when the flag is off', async () => {
+it('sends a signed-in user away from sign in with the flag off too', async () => {
+  // The analytics dashboard it lands on owns its request graph.
+  allowUnhandledRequests();
   await renderAdminApp('/signin', withAuthReact(false));
 
-  await expect.poll(emberFrameHidden).toBe(false);
-  expect(currentRoute()).toBe('/signin');
+  await expect.poll(currentRoute).toBe('/analytics');
 });
 
 it('confirms a password reset once the admin has reloaded', async () => {

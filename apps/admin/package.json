@@ -98,7 +98,6 @@
     "eslint-plugin-no-relative-import-paths": "1.6.1",
     "jsdom": "catalog:",
     "msw": "catalog:",
-    "sirv": "3.0.2",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
@@ -109,9 +108,6 @@
   "nx": {
     "tags": [
       "playwright"
-    ],
-    "implicitDependencies": [
-      "ghost-admin"
     ],
     "targets": {
       "test:unit": {
@@ -163,9 +159,15 @@
         },
         "dependsOn": [
           "ghost-monorepo:docker:up",
-          "ghost-admin:dev",
           "@tryghost/admin-x-framework:dev",
-          "@tryghost/shade:dev"
+          "@tryghost/shade:dev",
+          {
+            "projects": [
+              "@tryghost/koenig-lexical",
+              "@tryghost/kg-unsplash-selector"
+            ],
+            "target": "build"
+          }
         ]
       },
       "build:dev": {
@@ -185,12 +187,6 @@
               "@tryghost/shade"
             ],
             "target": "build"
-          },
-          {
-            "projects": [
-              "ghost-admin"
-            ],
-            "target": "build:dev"
           }
         ]
       },
@@ -211,13 +207,7 @@
           "{workspaceRoot}/ghost/core/core/built/embed-renderer"
         ],
         "dependsOn": [
-          "^build",
-          {
-            "projects": [
-              "ghost-admin"
-            ],
-            "target": "build"
-          }
+          "^build"
         ]
       },
       "lint": {

@@ -38,7 +38,7 @@ function fakeUnreadNotifications(count: number): void {
   fakeEndpoint('GET', UNREAD_COUNT_URL, { count });
 }
 
-/** The Ghost(Pro) item links to Ember's billing route; it shows for the owner of a hosted site. */
+/** The Ghost(Pro) item links to the billing route; it shows for the owner of a hosted site. */
 function ghostProSite(): RenderAdminAppOptions {
   const config = configResponse();
   config.config.hostSettings = { billing: { enabled: true, url: 'https://billing.example.com' } };
@@ -115,26 +115,6 @@ describe('Sidebar navigation', () => {
     expect(document.querySelector('[aria-label="Hide sidebar"]')).toBeNull();
   });
 
-  it('keeps the boot loader visible until React commits its mount marker', async () => {
-    await renderAdminApp('/site');
-    // `/site` is a lazy route, so the shell commits after its chunk loads.
-    await expect.element(sidebarScreen.shellNav()).toBeVisible();
-
-    const marker = document.querySelector<HTMLElement>('[data-react-admin-mounted]')!;
-    const emberApp = document.getElementById('ember-app')!;
-    const bridgeHost = emberApp.parentElement!;
-
-    try {
-      document.body.appendChild(emberApp);
-      expect(getComputedStyle(emberApp).visibility).toBe('hidden');
-      marker.removeAttribute('data-react-admin-mounted');
-      expect(getComputedStyle(emberApp).visibility).toBe('visible');
-    } finally {
-      marker.setAttribute('data-react-admin-mounted', '');
-      bridgeHost.appendChild(emberApp);
-    }
-  });
-
   it('renders the navigation for the current user', async () => {
     await renderAdminApp('/site');
 
@@ -166,14 +146,13 @@ describe('Sidebar navigation', () => {
     await expect.element(sidebarScreen.navLink('Tags')).not.toHaveAttribute('aria-current');
   });
 
-  it('uses router navigation for React-owned routes and hash anchors for Ember-owned ones', async () => {
+  it('uses router navigation for every route', async () => {
     fakeSidebarLists();
     await renderAdminApp('/site', ghostProSite());
     const historyKey = () => (window.history.state as { key?: unknown } | null)?.key;
 
     // Router links carry the router's history state (the unsaved-changes
-    // blockers rely on it); Ember's router only follows hashchange, so its
-    // links must stay native anchors.
+    // blockers rely on it).
     await sidebarScreen.navLink('Tags').click();
     await expect.poll(currentRoute).toBe('/tags');
     expect(typeof historyKey()).toBe('string');
@@ -184,7 +163,7 @@ describe('Sidebar navigation', () => {
 
     await sidebarScreen.ghostProLink().click();
     await expect.poll(currentRoute).toBe('/pro');
-    expect(historyKey()).toBeUndefined();
+    expect(typeof historyKey()).toBe('string');
   });
 
   it('clicking Posts and Pages navigates to the lists and marks them active', async () => {

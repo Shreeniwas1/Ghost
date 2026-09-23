@@ -84,14 +84,6 @@ export async function renderAdminApp(
     document.body.appendChild(rootElement);
   }
 
-  // EmberRoot expects the Ember host element to exist; there is no Ember
-  // app in the test page, so provide an empty stand-in.
-  if (!document.getElementById('ember-app')) {
-    const emberApp = document.createElement('div');
-    emberApp.id = 'ember-app';
-    document.body.appendChild(emberApp);
-  }
-
   // The framework RouterProvider is hash-based; set the initial route
   // before the router is created.
   window.location.hash = `#${route}`;

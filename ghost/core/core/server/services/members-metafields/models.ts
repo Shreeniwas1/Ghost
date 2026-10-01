@@ -15,3 +15,6 @@ export const Metafield = z.object({
   updatedAt: z.date().nullable(),
 });
 export type Metafield = z.infer<typeof Metafield>;
+
+/** A field as everything outside the definitions table points at it. */
+export type MetafieldRef = Pick<Metafield, 'namespace' | 'key'>;

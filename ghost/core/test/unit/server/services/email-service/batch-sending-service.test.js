@@ -349,11 +349,30 @@ describe('Batch Sending Service', function () {
   });
 
   describe('createBatches', function () {
+    function mockSweep(db, rows) {
+      db.knex.raw = () => null;
+      db.knex.unionAll = () => ({
+        orderBy() {
+          return this;
+        },
+        then(resolve, reject) {
+          return Promise.resolve(rows.map((row) => ({ id: row.id, segment_index: 0 }))).then(
+            resolve,
+            reject,
+          );
+        },
+      });
+    }
+
     function createAudienceService(rows = []) {
       const getSegments = sinon.stub().resolves([null]);
-      const getFilteredCollectionQuery = sinon.stub().callsFake(() => createDb({ all: rows }));
+      const getFilteredCollectionQuery = sinon.stub().callsFake(() => {
+        const query = createDb({ all: rows });
+        query.clone = () => query;
+        return query;
+      });
       const db = {
-        knex() {
+        knex(table) {
           let counted = false;
           return {
             clone() {
@@ -366,6 +385,9 @@ describe('Batch Sending Service', function () {
               return this;
             },
             whereNot() {
+              return this;
+            },
+            whereIn() {
               return this;
             },
             groupBy() {
@@ -385,11 +407,12 @@ describe('Batch Sending Service', function () {
               return Promise.resolve(counted ? { count: 0 } : null);
             },
             then(resolve, reject) {
-              return Promise.resolve([]).then(resolve, reject);
+              return Promise.resolve(table === 'members' ? rows : []).then(resolve, reject);
             },
           };
         },
       };
+      mockSweep(db, rows);
       const service = new BatchSendingService({
         db,
         models: {
@@ -491,7 +514,7 @@ describe('Batch Sending Service', function () {
         },
       };
       const db = {
-        knex() {
+        knex(table) {
           let grouped = false;
           let counted = false;
           return {
@@ -505,6 +528,9 @@ describe('Batch Sending Service', function () {
               return this;
             },
             whereNot() {
+              return this;
+            },
+            whereIn() {
               return this;
             },
             groupBy() {
@@ -532,17 +558,29 @@ describe('Batch Sending Service', function () {
               return Promise.resolve(counted ? { count: recipients.length } : null);
             },
             then(resolve, reject) {
-              const result = grouped ? [{ batch_id: batches[0].id, count: recipients.length }] : [];
+              const result =
+                table === 'members'
+                  ? [member]
+                  : grouped
+                    ? [{ batch_id: batches[0].id, count: recipients.length }]
+                    : [];
               return Promise.resolve(result).then(resolve, reject);
             },
           };
         },
       };
+      mockSweep(db, [member]);
       const service = new BatchSendingService({
         db,
         models: {
           EmailBatch,
-          Member: { getFilteredCollectionQuery: () => createDb({ all: [member] }) },
+          Member: {
+            getFilteredCollectionQuery: () => {
+              const query = createDb({ all: [member] });
+              query.clone = () => query;
+              return query;
+            },
+          },
         },
         domainWarmingService: { isEnabled: () => false },
         emailRenderer: { getSegments: async () => [null] },

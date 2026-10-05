@@ -18,6 +18,7 @@ import {
   post,
   renderAdminApp,
   settingsResponse,
+  siteResponse,
   staffRole,
   withoutAutosave,
   type RenderAdminAppOptions,
@@ -175,6 +176,7 @@ describe('Post editor', () => {
     });
     await renderAdminApp(`/editor/post/${POST_ID}`, FLAG_ON);
 
+    await expect.element(editorScreen.body()).toHaveTextContent('Hello from React');
     await expect.poll(() => snippetsApi.requests.length).toBe(2);
     const secondPageParams = new URL(snippetsApi.requests[1].url).searchParams;
     expect(secondPageParams.get('page')).toBe('2');
@@ -201,6 +203,7 @@ describe('Post editor', () => {
       });
     });
     await renderAdminApp(`/editor/post/${POST_ID}`, FLAG_ON);
+    await expect.element(editorScreen.body()).toHaveTextContent('Hello from React');
     await expect.poll(() => snippetsApi.requests.length).toBe(2);
 
     await editorScreen.body().click();
@@ -348,6 +351,29 @@ describe('Post editor', () => {
     await expect(editorScreen.loadError()).toHaveCount(0);
   });
 
+  it('shows the load error when the site cannot be read, and opens the editor on retry', async () => {
+    fakeEditorChrome();
+    await renderAdminApp('/editor/post', {
+      ...FLAG_ON,
+      boot: {
+        browseSite: {
+          response: { errors: [{ type: 'NotFoundError', message: 'Not found.' }] },
+          responseStatus: 404,
+        },
+      },
+    });
+
+    await expect.element(editorScreen.loadError()).toHaveTextContent('Couldn’t load the editor.');
+    await expect(editorScreen.titleInput()).toHaveCount(0);
+
+    // A later handler for the same route wins: the retried read finds the site.
+    fakeAdminEndpoint('GET', '/site/', siteResponse());
+    await editorScreen.retryLoad().click();
+
+    await expect.element(editorScreen.titleInput()).toBeVisible();
+    await expect(editorScreen.loadError()).toHaveCount(0);
+  });
+
   it('shows a 404 for a post that does not exist', async () => {
     fakeEditorChrome();
     fakeAdminEndpoint(
@@ -476,8 +502,8 @@ describe('Post editor email size warning', () => {
     const previewApi = fakeEmailPreview(99 * 1024);
     await renderAdminApp(`/editor/post/${POST_ID}`, FLAG_ON);
 
-    await expect.poll(() => previewApi.requests.length).toBe(1);
     await editorSettled();
+    await expect.poll(() => previewApi.requests.length).toBe(1);
     await expect(editorScreen.emailSizeWarning()).toHaveCount(0);
   });
 
@@ -538,6 +564,9 @@ describe('Post editor email size warning', () => {
     const firstCheck = fakeEmailPreview();
     await renderAdminApp(`/editor/post/${POST_ID}`, withoutAutosave(FLAG_ON));
 
+    // The preview needs the loaded post; starting its poll during boot uses up
+    // the assertion window before the editor can issue the request under load.
+    await expect.element(editorScreen.body()).toHaveTextContent('Hello from React');
     await expect.poll(() => firstCheck.requests.length).toBe(1);
     const secondCheck = fakeEmailPreview(OVER_EMAIL_LIMIT);
     await editorScreen.body().click();

@@ -180,9 +180,8 @@ const appRoutes: RouteObject[] = [
     // both sides of the `editorReact` flag.
     path: '/editor/*',
     Component: EditorGate,
-    // Blocked in force upgrade by React's guard: Ember's own gate stands down
-    // while React owns billing, so it cannot be relied on for this route.
-    handle: { hideAdminSidebar: true } satisfies AdminRouteHandle,
+    // EditorGate enforces force upgrade unless Ember owns both the editor and billing
+    handle: { allowInForceUpgrade: true, hideAdminSidebar: true } satisfies AdminRouteHandle,
   },
   { path: '/site', lazy: lazyComponent(lazyViewSiteScreen) },
   { path: '/restore', lazy: lazyComponent(lazyRestoreScreen) },
@@ -275,11 +274,16 @@ function matchedRoutePattern(pathname: string): string {
   return pattern.replace(/\/\/+/g, '/') || '/';
 }
 
-/** Tells Ember which route pattern React is showing, or null while Ember serves the screen. */
-export function useSyncEmberRoutePattern(): void {
+/** The route pattern React is showing, or null while Ember serves the screen. */
+export function useRoutePattern(): string | null {
   const { pathname } = useLocation();
   const isEmberOwned = useIsEmberOwnedRoute(pathname);
-  const routePattern = isEmberOwned ? null : matchedRoutePattern(pathname);
+  return isEmberOwned ? null : matchedRoutePattern(pathname);
+}
+
+/** Tells Ember which route pattern React is showing, or null while Ember serves the screen. */
+export function useSyncEmberRoutePattern(): void {
+  const routePattern = useRoutePattern();
 
   useEffect(() => syncEmberRoutePattern(routePattern), [routePattern]);
 }

@@ -371,10 +371,14 @@ are a recommendation rather than a limit: 60 for the title, 145 for the descript
 counted as symbols so a multibyte character counts once, and coloured once the
 writer is past the recommendation.
 
-The optional canonical URL accepts root-relative paths or absolute URLs with a
-valid host, rejects whitespace, and keeps Ember's 2,000-character limit. Invalid
-values stay staged and block saves until corrected. Clearing the field stores
-no canonical override.
+The canonical URL is optional as well. Anything but a blank value has to start
+with `/` or a scheme such as `https:` and hold no whitespace, or the field says
+`Please enter a valid URL`, and past 2,000 characters it says `Canonical URL is
+too long, max 2000 chars`. The rule is no stricter because every save checks the
+value the post holds, including one it was loaded with: a post already carrying
+a URL the rule refused could not be saved at all. An invalid value stays staged,
+nothing is saved while it is there, and a save the writer asks for is refused
+with the same message. Clearing the field stores no value.
 
 The preview under them is the result the post would produce, with a Google logo,
 search bar and blue result title. Each line falls back rather than emptying: the title is the meta title, else the title the
@@ -443,7 +447,8 @@ the API's answer, not the panel's.
 
 Confirming names the post and says the deletion is permanent. Cancelling returns
 focus to the Delete button. An expired session asks the writer to sign in, in
-place, before retrying, so their draft stays open. A refusal keeps
+place, before retrying, so their draft stays open. Abandoning the sign-in keeps
+the dialog, says the session expired, and the next Delete asks again. A refusal keeps
 the dialog, shows the sentence the API gave for it and leaves the editor as it
 was, so unsaved work is still the writer's to save. A deletion that succeeds
 ends the editing session before leaving for the list: the save in flight is

@@ -100,6 +100,7 @@ function bootAs(role: 'Author' | 'Contributor'): RenderAdminAppOptions {
 
 async function appendToBody(text: string) {
   const body = editorScreen.body();
+  await expect.element(body).toBeVisible();
   // One input event: a fast autosave must not split a keyboard sequence into several saves.
   await body.fill(`${body.element().textContent ?? ''}${text}`);
 }
@@ -502,6 +503,22 @@ describe('Post editor saving', () => {
       .toHaveTextContent('Hello from React and more and then some');
     await expect(editorScreen.notFound()).toHaveCount(0);
     expect(bodyElement()).toBe(mountedBody);
+  });
+
+  it('says the editor has crashed when a create is answered with a 404, and keeps the content', async () => {
+    fakeEditorChrome();
+    fakeAdminEndpoint('GET', /^\/slugs\/post\/untitled\//, { slugs: [{ slug: 'untitled' }] });
+    const createApi = fakeAdminEndpoint('POST', /^\/posts\/\?/, POST_NOT_FOUND, { status: 404 });
+    await renderAdminApp('/editor/post', FLAG_ON);
+
+    await appendToBody('First words');
+
+    await expect.poll(() => createApi.requests.length).toBe(1);
+    await expect.element(editorScreen.conflictBanner()).toHaveTextContent('The editor has crashed');
+    await expect.element(editorScreen.copyConflictedContent()).toBeVisible();
+    await expect(editorScreen.conflictBanner().getByRole('button')).toHaveCount(1);
+    await expect.element(editorScreen.body()).toHaveTextContent('First words');
+    expect(currentRoute()).toBe('/editor/post');
   });
 
   it('holds a title past the limit where it is typed, and refuses it on Cmd-S', async () => {

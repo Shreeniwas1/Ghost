@@ -99,7 +99,7 @@ export function EditorHeaderActions({
   const record = session.loadedRecord;
   const [previewOpen, setPreviewOpen] = useState(false);
   const feedback = useSaveFeedback({ session, displayName: postType, siteUrl });
-  const contributorSave = useSaveButtonPhase(feedback.save);
+  const contributorSave = useSaveButtonPhase(feedback.save, session.contentKey);
 
   useSaveShortcut(() => void feedback.save());
 
@@ -262,7 +262,7 @@ function PublishActions({
     await requireSaved(session.saveExplicit());
   }, [session]);
   const { save, showReverted } = feedback;
-  const update = useSaveButtonPhase(save);
+  const update = useSaveButtonPhase(save, session.contentKey);
   const revertToDraft = useCallback(() => {
     onOpenFlow('none');
     void session.dispatchPublish({ kind: 'revert' });
@@ -295,9 +295,12 @@ function PublishActions({
   // button is the only way into the flow from there.
   usePublishShortcut(openPublishFlow, isDraft && inputs.isReady && !preview.open);
 
-  // A draft's Publish and the status line's retry stay disabled until these inputs load.
+  // Ember routes a sent post to the update flow from its status line, not the header.
+  const offersUpdateFlow = !isDraft && post.status !== 'sent';
+
+  // Publish, Unpublish, Unschedule and the status line's retry open nothing until these load.
   const inputsError =
-    (isDraft || offersEmailRetry) && inputs.error ? (
+    (isDraft || offersUpdateFlow || offersEmailRetry) && inputs.error ? (
       <>
         <Text
           className="bg-background/80 text-destructive backdrop-blur-sm"
@@ -343,8 +346,7 @@ function PublishActions({
       ) : (
         <>
           {inputsError}
-          {/* Ember routes a sent post to the update flow from its status line, not the header. */}
-          {post.status === 'sent' ? null : (
+          {offersUpdateFlow ? (
             <PageHeader.Action
               className="bg-background/80 backdrop-blur-sm"
               fallbackSize="sm"
@@ -354,7 +356,7 @@ function PublishActions({
             >
               {post.status === 'scheduled' ? 'Unschedule' : 'Unpublish'}
             </PageHeader.Action>
-          )}
+          ) : null}
           <PageHeader.Action
             className="bg-background/80 font-semibold text-state-success backdrop-blur-sm hover:text-state-success disabled:text-text-secondary/60 disabled:opacity-100"
             disabled={!session.isDirty() || isSaving}
